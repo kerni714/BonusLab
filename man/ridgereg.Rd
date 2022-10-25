@@ -10,6 +10,8 @@ ridgereg(formula, data, lambda)
 \item{formula}{an object of class "formula"}
 
 \item{data}{a dataframe containing the variables in the formula}
+
+\item{lambda}{regularisation parameter}
 }
 \value{
 returns object of class "ridgereg"

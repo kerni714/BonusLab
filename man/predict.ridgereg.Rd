@@ -2,32 +2,25 @@
 % Please edit documentation in R/methods_rr.R
 \name{predict.ridgereg}
 \alias{predict.ridgereg}
-\title{Residual of the linear regression function}
+\title{Predicted values}
 \usage{
 \method{predict}{ridgereg}(object, x, ...)
 }
 \arguments{
 \item{object}{Refers to the object return by the linear regression function}
 
+\item{x}{new data to be predicted}
+
 \item{...}{arguments to be passed to methods}
 }
 \value{
-object$residuals
-
 predicted values
 }
 \description{
-Returns the residuals
+Returns the predicted values
 }
 \examples{
 data(iris)
-          s<-linreg(formula=Petal.Length~Species, data= iris)
-          resid(s)
-Predicted values
-
-Returns the predicted values
-
-data(iris)
-          res<-ridgereg(formula=Petal.Length~Species, data= iris)
+          res<-ridgereg(formula=Petal.Length~Species, data= iris, lambda=2)
           pred(res)
 }

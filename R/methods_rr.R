@@ -14,7 +14,7 @@
 #'
 print.ridgereg <- function(x,...){
 
-  stopifnot(class(x="ridgereg"))
+  stopifnot(class(x)=="ridgereg")
 
   cat("", sep="\n\n")
 
@@ -30,32 +30,38 @@ print.ridgereg <- function(x,...){
   cat("", sep="\n\n")
   print(x$coefficients)
 }
-#' Residual of the linear regression function
+
+#' Coefficients
 #'
-#' Returns the residuals
+#' Returns the coefficients
 #'
-#' @param object Refers to the res variable return by the linear regression function
+#' @param object Refers to the object return by the linear regression function
 #' @param ... arguments to be passed to methods
 #'
-#' @return object$residuals
+#' @return object$coefficients
 #' @export
 #'
 #' @examples data(iris)
-#'           s<-linreg(formula=Petal.Length~Species, data= iris)
-#'           resid(s)
-
+#'           res<-ridgereg(formula=Petal.Length~Species, data= iris, lambda=2)
+#'           coef(res)
+coef.ridgereg <- function(object,...){
+  stopifnot(class(object)=="ridgereg")
+  return(object$coefficients)
+}
 
 #' Predicted values
 #'
 #' Returns the predicted values
 #'
 #' @param object Refers to the object return by the linear regression function
+#' @param x new data to be predicted
+#' @param ... arguments to be passed to methods
 #'
 #' @return predicted values
 #' @export
 #'
 #' @examples data(iris)
-#'           res<-ridgereg(formula=Petal.Length~Species, data= iris)
+#'           res<-ridgereg(formula=Petal.Length~Species, data= iris, lambda=2)
 #'           pred(res)
 predict.ridgereg <- function(object,x,...){
 
@@ -75,23 +81,6 @@ predict.ridgereg <- function(object,x,...){
   return(y_pred)
 }
 
-#' Coefficients
-#'
-#' Returns the coefficients
-#'
-#' @param object Refers to the object return by the linear regression function
-#' @param ... arguments to be passed to methods
-#'
-#' @return object$coefficients
-#' @export
-#'
-#' @examples data(iris)
-#'           res<-ridgereg(formula=Petal.Length~Species, data= iris)
-#'           coef(res)
-coef.ridgereg <- function(object,...){
-  stopifnot(class(object="ridgereg"))
-  return(object$coefficients)
-}
 
 rmse <- function(error)
 {

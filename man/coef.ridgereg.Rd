@@ -19,6 +19,6 @@ Returns the coefficients
 }
 \examples{
 data(iris)
-          res<-ridgereg(formula=Petal.Length~Species, data= iris)
+          res<-ridgereg(formula=Petal.Length~Species, data= iris, lambda=2)
           coef(res)
 }

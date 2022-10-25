@@ -4,6 +4,7 @@
 #'
 #' @param formula an object of class "formula"
 #' @param data a dataframe containing the variables in the formula
+#' @param lambda regularisation parameter
 #'
 #' @return returns object of class "ridgereg"
 #' @export
@@ -32,7 +33,7 @@ ridgereg <- function(formula, data, lambda) {
 
   #- Calculate mean and sd of X cols
   mean_X <- colMeans(X[,-1])
-  sd_X <- apply(X[,-1],2,sd)
+  sd_X <- apply(X[,-1],2,stats::sd)
 
   #- Center X
   X_c <- sweep(X[,-1],2,mean_X)
