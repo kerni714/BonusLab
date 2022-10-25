@@ -19,7 +19,7 @@ Prints model call and coefficients
 }
 \examples{
 data(iris)
-          s<-linreg(formula=Petal.Length~Species, data=iris)
+          s<-ridgereg(formula=Petal.Length~Species, data=iris,lambda=2)
           print(s)
 
 }
