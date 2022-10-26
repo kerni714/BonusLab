@@ -30,39 +30,67 @@ head(BostonHousing)
 ```{r}
 set.seed(42)
 inTrain <- caret::createDataPartition(y = BostonHousing$medv, p = .75,list = FALSE)
-                                      
 
 training <- BostonHousing[ inTrain,]
 testing <- BostonHousing[-inTrain,]
 nrow(training)
 nrow(testing)
 ```
-Set up sampling method, 10-fold cross-validation:
+Set up sampling methods, none and 10-fold cross-validation:
 ```{r}
-sampling <- trainControl(method = "cv",p=90)
+set.seed(42)
+sampling_none <- trainControl(method = "none")
+sampling_cv_10 <- trainControl(method = "cv",p=90)
 
 ```
-2. Run linear models
-Run linear model, all variables:
+2.Fit linear models, all variables and forward selection of covariates\
+All variables:
 ```{r}
-lm_res <- train(medv ~ .,data = training, method = 'lm', trControl = sampling)
-lm_res
+#- Training set
+lm_res_training <- train(medv ~ .,data = training, method = 'lm', trControl = sampling_none)
+lm_res_training
+
+#summary(lm_res_training)
+
+#- 10 fold cross-validation
+lm_res_cv_10 <- train(medv ~ .,data = training, method = 'lm', trControl = sampling_cv_10)
+lm_res_cv_10
 ```
-Run linear model with forward selection:
+Forward selection of covariates:
 ```{r}
+# Set up paramter for number of variables in subsets
 grid <- data.frame(c(1:(length(BostonHousing)-1)))
 names(grid) <- c("nvmax")
-lmsubset_res <- train(medv ~ .,data = training,intercept=TRUE,
-               method = 'leapForward',tuneGrid=grid, trControl = sampling)
-lmsubset_res
+
+lmsubset_res_cv_10 <- train(medv ~ .,data = training,intercept=TRUE,
+                            method = 'leapForward',tuneGrid=grid, trControl = sampling_cv_10)
+lmsubset_res_cv_10
+
+summary(lmsubset_res_cv_10)
 ```
+Fit model with selected variables on whole training set:
+```{r}
+lmsubset_res_training <- train(medv ~ crim+zn+chas+nox+rm+dis+rad+tax+ptratio+b+lstat,data = training,
+                               method = 'lm',trControl = sampling_none)
+lmsubset_res_training
+
+#summary(lmsubset_res_training)
+
+```
+
 3) Evaluate the performance of these models on the training set:
 ```{r}
-lm_vs_lmsubset_training <- resamples(list(lm = lm_res, lm_subset = lmsubset_res))
-summary(lm_vs_lmsubset_training)
+#- Compare RMSE from all of training set
+lm_training_error <- training$medv-predict(lm_res_training)
+lmsubset_training_error <- training$medv-predict(lmsubset_res_training)
+rmse_training_summary_lm <- c(lm=rmse(lm_training_error),lmsubset=rmse(lmsubset_training_error))
+print(rmse_training_summary_lm)
+
+#- Compare RMSE from cross-validation rounds
+lm_vs_lmsubset_cv_10 <- resamples(list(lm = lm_res_cv_10, lm_subset = lmsubset_res_cv_10))
+summary(lm_vs_lmsubset_cv_10)
 ```
-4) Fit a ridge regression model using your ridgereg() function to the training dataset for different
-values of λ.
+4) Fit a ridge regression model using your ridgereg() function to the training dataset for different values of λ.
 
 Set parameters for running ridgereg() with caret:
 ```{r}
@@ -70,23 +98,21 @@ Set parameters for running ridgereg() with caret:
 ridgereg <- list(type = "Regression",
                  library = "BonusLab",
                  loop = NULL)
-
 #- Parameters:
 prm <- data.frame(parameter = c("lambda"),
                   class = c("numeric"),
                   label = c("lambda"))
-
 ridgereg$parameters <- prm
-
 #- Grid
 rrGrid <- function(x, y, len = NULL, search = "grid") {
   if(search == "grid") {
-    out <- data.frame(lambda = c(0, 0.1, 0.5, 1,2,5,10,15,20))
+    l1 <- c(0, 0.1, 0.5)
+    l2 <- 1:20
+    l <- c(l1,l2)
+    out <- data.frame(lambda = l)
   }
 }
-
 ridgereg$grid <- rrGrid
-
 #- Fit
 rrFit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
   formula <- y ~ .
@@ -94,43 +120,71 @@ rrFit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
   lambda <- param$lambda
   BonusLab::ridgereg(formula, data, lambda)
 }
-
 ridgereg$fit <- rrFit
-
 #- Pred
 rrPred <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
   newdata <- as.data.frame(newdata)
   predict(modelFit, newdata)
 }
-
 ridgereg$predict <- rrPred
-
-
 #- Prob
-ridgereg$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
+rrProb <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
   NULL
 }
+ridgereg$prob <- rrProb
 ```
-Train model:
+Train model for some different values of λ:
 
 ```{r}
-rr_res <- train(medv ~ ., data = training,
-                   method = ridgereg,
-                   preProc = c("center", "scale"),
-                   tuneLength = 8,
-                    #tuneGrid=grid,
-                   trControl = sampling)
-rr_res
+#lambda=1
+grid <-data.frame(1)
+names(grid) <- c("lambda")
+
+rr_res_lambda_1 <- train(medv ~ ., data = training,
+                         method = ridgereg,
+                         preProc = c("center", "scale"),
+                         tuneGrid=grid,
+                         trControl = sampling_none)
+rr_res_lambda_1
+
+#lambda=5
+grid <-data.frame(5)
+names(grid) <- c("lambda")
+
+rr_res_lambda_5 <- train(medv ~ ., data = training,
+                         method = ridgereg,
+                         preProc = c("center", "scale"),
+                         tuneGrid=grid,
+                         trControl = sampling_none)
+rr_res_lambda_5
+
+rr_res_training_lambda_1 <- training$medv-predict(rr_res_lambda_1)
+rr_res_training_lambda_5 <- training$medv-predict(rr_res_lambda_5)
+
+rmse_summary_rr_training <- c(ridge_lambda_1=rmse(rr_res_training_lambda_1),
+    ridge_lambda_5=rmse(rr_res_training_lambda_5))
+
+print(rmse_summary_rr_training)
 
 ```
-Compare the lm subset model with 11 variables to the ridge regression on the 
-training set:
-
+5. Find the best hyperparameter value for λ using 10-fold cross-validation on the training set.
 ```{r}
-lmsubset_vs_ridge_training <- resamples(list(lm_subset = lmsubset_res,rr=rr_res))
-summary(lmsubset_vs_ridge_training)
-
+rr_res_cv_10 <- train(medv ~ ., data = training,
+                      method = ridgereg,
+                      preProc = c("center", "scale"),
+                      trControl = sampling_cv_10)
+rr_res_cv_10
 ```
 
 6. Evaluate the performance of all three models on the test dataset:
 
+```{r}
+lm_test_error <- testing$medv-predict(lm_res_training, newdata = testing)
+lmsubset_test_error <- testing$medv-predict(lmsubset_res_cv_10, newdata = testing)
+rr_test_error <- testing$medv-predict(rr_res_cv_10, newdata = testing)
+
+rmse_summary <- c(lm=rmse(lm_test_error),lmsubset=rmse(lmsubset_test_error),ridge=rmse(rr_test_error))
+
+print(rmse_summary)
+```
+Ridge regression has the lowest RMSE for the test set, followed by the linear model subset and finally the linear model with all covariates.
