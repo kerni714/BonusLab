@@ -113,6 +113,20 @@ predr <- function(object,x,...){
   return(y_pred)
 }
 
+#' RMSE
+#'
+#' @param error residuals in model
+#'
+#' @return rmse value
+#' @export
+#'
+#' @examples
+#' data(iris)
+#' ridgeres <- ridgereg(formula=Sepal.Length ~ Petal.Length + Petal.Width,
+#' data=iris, lambda=2)
+#' x = data.frame(Petal.Length=iris$Petal.Length,Petal.Width=iris$Petal.Width)
+#' rr_error <- iris$Sepal.Length-predict(ridgeres,x)
+#' rmse_ridge <- rmse(rr_error)
 rmse <- function(error)
 {
   sqrt(mean(error^2))

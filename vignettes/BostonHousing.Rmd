@@ -1,0 +1,136 @@
+---
+title: "BostonHousing"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{BostonHousing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+Attach libraries:
+```{r setup}
+library(BonusLab)
+library(mlbench)
+library(caret)
+```
+
+Load and preview the dataset:
+```{r}
+data(BostonHousing)
+dim(BostonHousing)
+head(BostonHousing)
+```
+1. Divide the dataset into training and test set:
+```{r}
+set.seed(42)
+inTrain <- caret::createDataPartition(y = BostonHousing$medv, p = .75,list = FALSE)
+                                      
+
+training <- BostonHousing[ inTrain,]
+testing <- BostonHousing[-inTrain,]
+nrow(training)
+nrow(testing)
+```
+Set up sampling method, 10-fold cross-validation:
+```{r}
+sampling <- trainControl(method = "cv",p=90)
+
+```
+2. Run linear models
+Run linear model, all variables:
+```{r}
+lm_res <- train(medv ~ .,data = training, method = 'lm', trControl = sampling)
+lm_res
+```
+Run linear model with forward selection:
+```{r}
+grid <- data.frame(c(1:(length(BostonHousing)-1)))
+names(grid) <- c("nvmax")
+lmsubset_res <- train(medv ~ .,data = training,intercept=TRUE,
+               method = 'leapForward',tuneGrid=grid, trControl = sampling)
+lmsubset_res
+```
+3) Evaluate the performance of these models on the training set:
+```{r}
+lm_vs_lmsubset_training <- resamples(list(lm = lm_res, lm_subset = lmsubset_res))
+summary(lm_vs_lmsubset_training)
+```
+4) Fit a ridge regression model using your ridgereg() function to the training dataset for different
+values of λ.
+
+Set parameters for running ridgereg() with caret:
+```{r}
+#- Start information:
+ridgereg <- list(type = "Regression",
+                 library = "BonusLab",
+                 loop = NULL)
+
+#- Parameters:
+prm <- data.frame(parameter = c("lambda"),
+                  class = c("numeric"),
+                  label = c("lambda"))
+
+ridgereg$parameters <- prm
+
+#- Grid
+rrGrid <- function(x, y, len = NULL, search = "grid") {
+  if(search == "grid") {
+    out <- data.frame(lambda = c(0, 0.1, 0.5, 1,2,5,10,15,20))
+  }
+}
+
+ridgereg$grid <- rrGrid
+
+#- Fit
+rrFit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+  formula <- y ~ .
+  data <- as.data.frame(cbind(x,y))
+  lambda <- param$lambda
+  BonusLab::ridgereg(formula, data, lambda)
+}
+
+ridgereg$fit <- rrFit
+
+#- Pred
+rrPred <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
+  newdata <- as.data.frame(newdata)
+  predict(modelFit, newdata)
+}
+
+ridgereg$predict <- rrPred
+
+
+#- Prob
+ridgereg$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL) {
+  NULL
+}
+```
+Train model:
+
+```{r}
+rr_res <- train(medv ~ ., data = training,
+                   method = ridgereg,
+                   preProc = c("center", "scale"),
+                   tuneLength = 8,
+                    #tuneGrid=grid,
+                   trControl = sampling)
+rr_res
+
+```
+Compare the lm subset model with 11 variables to the ridge regression on the 
+training set:
+
+```{r}
+lmsubset_vs_ridge_training <- resamples(list(lm_subset = lmsubset_res,rr=rr_res))
+summary(lmsubset_vs_ridge_training)
+
+```
+
+6. Evaluate the performance of all three models on the test dataset:
+

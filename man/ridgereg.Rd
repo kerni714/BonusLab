@@ -21,5 +21,6 @@ ridgereg is used to carry out ridge regression.
 }
 \examples{
 data(iris)
-linres <- linreg(formula=Sepal.Length ~ Petal.Length + Petal.Width, data=iris)
+ridgeres <- ridgereg(formula=Sepal.Length ~ Petal.Length + Petal.Width,
+data=iris, lambda=2)
 }
