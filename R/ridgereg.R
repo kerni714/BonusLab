@@ -18,6 +18,10 @@ ridgereg <- function(formula, data, lambda) {
   #- Checks part I
   stopifnot(class(formula)=="formula",is.data.frame(data))
 
+  if (sum(is.na(data)) > 0) {
+    stop("There are missing values (NA) in the data")
+  }
+
   #- Retrieve y
   y <- data[,all.vars(expr=formula)[1]]
 
